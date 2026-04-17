@@ -22,15 +22,21 @@ export const createApp = (pool: Pool) => {
     app.use(express.json());
     app.use(express.urlencoded());
 
-    app.use('api/animals', animalsRouter(pool));
+    app.use('/health', (_req, res) => {
+        return res.json({
+            status: 'ok',
+            timeStamp: new Date().toISOString(),
+        });
+    });
+
+    app.use('/api/animals', animalsRouter(pool));
 
     app.use((_req, res) => {
         res.status(404);
         res.statusMessage = 'Not Found';
-        res.json({
+        return res.json({
             message: 'Resource not found',
         });
-        return;
     });
 
     return app;
