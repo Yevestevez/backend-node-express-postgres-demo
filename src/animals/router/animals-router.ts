@@ -5,8 +5,8 @@ import type { Pool } from 'pg';
 import { env } from '../../config/env.ts';
 import {
     AnimalSchemaDTO,
+    AnimalSchemaUpdateDTO,
     type Animal,
-    type AnimalDTO,
 } from '../schemas/animal.ts';
 import { HttpError } from '../../errors/http-error.ts';
 import { SqlError } from '../../errors/sql-error.ts';
@@ -44,11 +44,11 @@ export const animalsRouter = (pool: Pool) => {
         }
 
         if (rows.length === 0) {
-            throw new HttpError(
-                404,
-                'NotFound',
-                `No animal found with id ${id}`,
-            );
+            throw new SqlError(`Animal with id ${id} not found`, {
+                code: 'NOT_FOUND',
+                sqlState: 'SELECT_FAILED',
+                sqlMessage: `No animal found with id ${id}`,
+            });
         }
 
         return res.json(rows[0]);
@@ -97,6 +97,72 @@ export const animalsRouter = (pool: Pool) => {
         }
     });
 
+    router.patch('/:id', async (req, res) => {
+        const { id } = req.params;
+
+        const parsed = AnimalSchemaUpdateDTO.safeParse(req.body);
+
+        if (!parsed.success) {
+            throw new HttpError(
+                400,
+                'BadRequest',
+                parsed.error.issues[0]?.message,
+            );
+        }
+
+        const data = parsed.data;
+
+        const q = `
+            UPDATE animals SET
+                name = COALESCE($2, name),
+                english_name = COALESCE($3, english_name),
+                sci_name = COALESCE($4, sci_name),
+                diet = COALESCE($5, diet),
+                lifestyle = COALESCE($6, lifestyle),
+                location = COALESCE($7, location),
+                slogan = COALESCE($8, slogan),
+                group_name = COALESCE($9, group_name),
+                image = COALESCE($10, image)
+            WHERE id = $1
+            RETURNING *
+        `;
+
+        let rows: Animal[];
+
+        try {
+            ({ rows } = await pool.query<Animal>(q, [
+                id,
+                data.name,
+                data.englishName,
+                data.sciName,
+                data.diet,
+                data.lifestyle,
+                data.location,
+                data.slogan,
+                data.group,
+                data.image,
+            ]));
+        } catch (error) {
+            const finalError = new HttpError(
+                500,
+                'Internal Server Error',
+                (error as Error).message,
+            );
+            finalError.cause = error;
+            throw finalError;
+        }
+
+        if (rows.length === 0) {
+            throw new SqlError(`Animal with id ${id} not found`, {
+                code: 'NOT_FOUND',
+                sqlState: 'UPDATE_FAILED',
+                sqlMessage: `No animal found with id ${id}`,
+            });
+        }
+
+        return res.json(rows[0] as Animal);
+    });
+
     router.delete('/:id', async (req, res) => {
         const { id } = req.params;
         const q = `DELETE FROM animals WHERE id = $1 RETURNING *`;
@@ -116,11 +182,11 @@ export const animalsRouter = (pool: Pool) => {
         }
 
         if (rows.length === 0) {
-            throw new HttpError(
-                404,
-                'NotFound',
-                `No animal found with id ${id}`,
-            );
+            throw new SqlError(`Animal with id ${id} not found`, {
+                code: 'NOT_FOUND',
+                sqlState: 'DELETE_FAILED',
+                sqlMessage: `No animal found with id ${id}`,
+            });
         }
 
         return res.json(rows[0]);
