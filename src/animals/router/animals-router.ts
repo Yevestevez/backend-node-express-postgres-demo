@@ -18,7 +18,7 @@ export const animalsRouter = (pool: Pool) => {
     const router = Router();
 
     router.get('/', async (_req, res) => {
-        const q = `SELECT * FROM animals`;
+        const q = `SELECT id, name, english_name AS "englishName", sci_name AS "sciName", diet, lifestyle, location, slogan, group_name AS "group", image FROM animals`;
         const { rows } = await pool.query<Animal>(q);
 
         return res.json(rows);
@@ -27,7 +27,7 @@ export const animalsRouter = (pool: Pool) => {
     router.get('/:id', async (req, res) => {
         const { id } = req.params;
         log(id);
-        const q = `SELECT * FROM animals WHERE id = $1`;
+        const q = `SELECT id, name, english_name AS "englishName", sci_name AS "sciName", diet, lifestyle, location, slogan, group_name AS "group", image FROM animals WHERE id = $1`;
 
         let rows: Animal[];
 
@@ -69,7 +69,7 @@ export const animalsRouter = (pool: Pool) => {
         const q = `
             INSERT INTO animals (name, english_name, sci_name, diet, lifestyle, location, slogan, group_name, image)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING *
+            RETURNING id, name, english_name AS "englishName", sci_name AS "sciName", diet, lifestyle, location, slogan, group_name AS "group", image
         `;
 
         try {
@@ -124,7 +124,7 @@ export const animalsRouter = (pool: Pool) => {
                 group_name = COALESCE($9, group_name),
                 image = COALESCE($10, image)
             WHERE id = $1
-            RETURNING *
+            RETURNING id, name, english_name AS "englishName", sci_name AS "sciName", diet, lifestyle, location, slogan, group_name AS "group", image
         `;
 
         let rows: Animal[];
@@ -165,7 +165,7 @@ export const animalsRouter = (pool: Pool) => {
 
     router.delete('/:id', async (req, res) => {
         const { id } = req.params;
-        const q = `DELETE FROM animals WHERE id = $1 RETURNING *`;
+        const q = `DELETE FROM animals WHERE id = $1 RETURNING id, name, english_name AS "englishName", sci_name AS "sciName", diet, lifestyle, location, slogan, group_name AS "group", image`;
 
         let rows: Animal[];
 
