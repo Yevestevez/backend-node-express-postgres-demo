@@ -197,5 +197,86 @@ describe('Animals router', () => {
                 'https://example.com/updated-eagle.jpg',
             );
         });
+
+        it('Should return 404 when updating non-existing animal', async () => {
+            const updatedAnimal = {
+                name: 'Animal no existente',
+                englishName: 'Non-existing Animal',
+                sciName: 'Unknown',
+                diet: 'Unknown',
+                lifestyle: 'Diurno',
+                location: 'Unknown',
+                slogan: 'Unknown',
+                group: 'Unknown',
+                image: 'https://example.com/non-existing.jpg',
+            };
+
+            const res = await fetch(`${baseUrl}/api/animals/999`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedAnimal),
+            });
+
+            assert.strictEqual(res.status, 404);
+
+            const body = (await res.json()) as {
+                message: string;
+                code: string;
+                sqlState: string;
+                sqlMessage: string;
+                statusMessage: string;
+            };
+
+            assert.strictEqual(body.message, 'Animal with id 999 not found');
+            assert.strictEqual(body.code, 'NOT_FOUND');
+            assert.strictEqual(body.sqlState, 'UPDATE_FAILED');
+            assert.strictEqual(body.sqlMessage, 'No animal found with id 999');
+            assert.strictEqual(body.statusMessage, 'Not Found');
+        });
+    });
+
+    describe('Delete Operations', () => {
+        it('Should delete an existing animal', async () => {
+            const res = await fetch(`${baseUrl}/api/animals/5`, {
+                method: 'DELETE',
+            });
+
+            assert.strictEqual(res.status, 200);
+
+            const body = (await res.json()) as Animal;
+
+            assert.strictEqual(body.id, 5);
+            assert.strictEqual(body.name, 'Águila');
+            assert.strictEqual(body.englishName, 'Eagle');
+            assert.strictEqual(body.sciName, 'Aquila chrysaetos');
+            assert.strictEqual(body.diet, 'Carnívoro');
+            assert.strictEqual(body.lifestyle, 'Diurno');
+            assert.strictEqual(body.location, 'Global');
+            assert.strictEqual(body.slogan, 'El rey de los cielos');
+            assert.strictEqual(body.group, 'Accipitridae');
+            assert.strictEqual(body.image, 'https://example.com/eagle.jpg');
+        });
+
+        it('Should return 404 when deleting non-existing animal', async () => {
+            const res = await fetch(`${baseUrl}/api/animals/999`, {
+                method: 'DELETE',
+            });
+
+            assert.strictEqual(res.status, 404);
+
+            const body = (await res.json()) as {
+                message: string;
+                code: string;
+                sqlState: string;
+                sqlMessage: string;
+                statusMessage: string;
+            };
+
+            assert.strictEqual(body.message, 'Animal with id 999 not found');
+            assert.strictEqual(body.code, 'NOT_FOUND');
+            assert.strictEqual(body.sqlState, 'DELETE_FAILED');
+            assert.strictEqual(body.sqlMessage, 'No animal found with id 999');
+            assert.strictEqual(body.statusMessage, 'Not Found');
+        });
     });
 });
